@@ -37,12 +37,12 @@ namespace Renci.SshNet
         ISftpSession CreateSftpSession(ISession session, TimeSpan operationTimeout, Encoding encoding);
 
         /// <summary>
-        /// Create a new <see cref="PipeStream"/>.
+        /// Create a new <see cref="Pipe"/>.
         /// </summary>
         /// <returns>
-        /// A <see cref="PipeStream"/>.
+        /// A <see cref="Pipe"/>.
         /// </returns>
-        PipeStream CreatePipeStream();
+		Pipe CreatePipe(PipeFlags inFlags, PipeFlags outFlags);
 
         /// <summary>
         /// Negotiates a key exchange algorithm, and creates a <see cref="IKeyExchange" /> for the negotiated

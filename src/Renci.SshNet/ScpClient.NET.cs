@@ -28,18 +28,18 @@ namespace Renci.SshNet
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentException("path");
 
-            using (var input = ServiceFactory.CreatePipeStream())
+            using (Pipe input = ServiceFactory.CreatePipe(PipeFlags.NoCopy, PipeFlags.Default))
             using (var channel = Session.CreateChannelSession())
             {
-                channel.DataReceived += (sender, e) => input.Write(e.Data, 0, e.Data.Length);
+                channel.DataReceived += (sender, e) => input.InStream.Write(e.Data, 0, e.Data.Length);
                 channel.Open();
 
                 if (!channel.SendExecRequest(string.Format("scp -t \"{0}\"", path)))
                     throw new SshException("Secure copy execution request was rejected by the server. Please consult the server logs.");
 
-                CheckReturnCode(input);
+                CheckReturnCode(input.OutStream);
 
-                InternalUpload(channel, input, fileInfo, fileInfo.Name);
+                InternalUpload(channel, input.OutStream, fileInfo, fileInfo.Name);
             }
         }
 
@@ -57,24 +57,24 @@ namespace Renci.SshNet
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentException("path");
 
-            using (var input = ServiceFactory.CreatePipeStream())
+            using (Pipe input = ServiceFactory.CreatePipe(PipeFlags.NoCopy, PipeFlags.Default))
             using (var channel = Session.CreateChannelSession())
             {
-                channel.DataReceived += (sender, e) => input.Write(e.Data, 0, e.Data.Length);
+                channel.DataReceived += (sender, e) => input.InStream.Write(e.Data, 0, e.Data.Length);
                 channel.Open();
 
                 //  Send channel command request
                 channel.SendExecRequest(string.Format("scp -rt \"{0}\"", path));
-                CheckReturnCode(input);
+                CheckReturnCode(input.OutStream);
 
-                InternalSetTimestamp(channel, input, directoryInfo.LastWriteTimeUtc, directoryInfo.LastAccessTimeUtc);
+                InternalSetTimestamp(channel, input.OutStream, directoryInfo.LastWriteTimeUtc, directoryInfo.LastAccessTimeUtc);
                 SendData(channel, string.Format("D0755 0 {0}\n", Path.GetFileName(path)));
-                CheckReturnCode(input);
+                CheckReturnCode(input.OutStream);
 
-                InternalUpload(channel, input, directoryInfo);
+                InternalUpload(channel, input.OutStream, directoryInfo);
 
                 SendData(channel, "E\n");
-                CheckReturnCode(input);
+                CheckReturnCode(input.OutStream);
             }
         }
 
@@ -92,17 +92,17 @@ namespace Renci.SshNet
             if (fileInfo == null)
                 throw new ArgumentNullException("fileInfo");
 
-            using (var input = ServiceFactory.CreatePipeStream())
+            using (Pipe input = ServiceFactory.CreatePipe(PipeFlags.NoCopy, PipeFlags.Default))
             using (var channel = Session.CreateChannelSession())
             {
-                channel.DataReceived += (sender, e) => input.Write(e.Data, 0, e.Data.Length);
+                channel.DataReceived += (sender, e) => input.InStream.Write(e.Data, 0, e.Data.Length);
                 channel.Open();
 
                 //  Send channel command request
                 channel.SendExecRequest(string.Format("scp -pf \"{0}\"", filename));
                 SendConfirmation(channel); //  Send reply
 
-                InternalDownload(channel, input, fileInfo);
+                InternalDownload(channel, input.OutStream, fileInfo);
             }
         }
 
@@ -120,17 +120,17 @@ namespace Renci.SshNet
             if (directoryInfo == null)
                 throw new ArgumentNullException("directoryInfo");
 
-            using (var input = ServiceFactory.CreatePipeStream())
+            using (Pipe input = ServiceFactory.CreatePipe(PipeFlags.NoCopy, PipeFlags.Default))
             using (var channel = Session.CreateChannelSession())
             {
-                channel.DataReceived += (sender, e) => input.Write(e.Data, 0, e.Data.Length);
+                channel.DataReceived += (sender, e) => input.InStream.Write(e.Data, 0, e.Data.Length);
                 channel.Open();
 
                 //  Send channel command request
                 channel.SendExecRequest(string.Format("scp -prf \"{0}\"", directoryName));
                 SendConfirmation(channel); //  Send reply
 
-                InternalDownload(channel, input, directoryInfo);
+                InternalDownload(channel, input.OutStream, directoryInfo);
             }
         }
 

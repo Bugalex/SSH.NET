@@ -54,14 +54,14 @@ namespace Renci.SshNet
         }
 
         /// <summary>
-        /// Create a new <see cref="PipeStream"/>.
+        /// Create a new <see cref="Pipe"/>.
         /// </summary>
         /// <returns>
-        /// A <see cref="PipeStream"/>.
+        /// A <see cref="Pipe"/>.
         /// </returns>
-        public PipeStream CreatePipeStream()
+		public Pipe CreatePipe(PipeFlags inFlags, PipeFlags outFlags)
         {
-            return new PipeStream();
+            return new Pipe(Pipe.DefaultCapacity, inFlags, outFlags);
         }
 
         /// <summary>

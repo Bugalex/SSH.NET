@@ -25,6 +25,9 @@ namespace Renci.SshNet
         private Exception _exception;
         private bool _hasError;
         private readonly object _endExecuteLock = new object();
+        private Pipe _inputPipe;
+        private Pipe _extendedPipe;
+        private Pipe _pipe;
 
         /// <summary>
         /// Gets the command text.
@@ -56,7 +59,16 @@ namespace Renci.SshNet
         /// <example>
         ///     <code source="..\..\src\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand CreateCommand Execute OutputStream" language="C#" title="Use OutputStream to get command execution output" />
         /// </example>
-        public Stream OutputStream { get; private set; }
+        public Pipe.OutPipeStream OutputStream
+        {
+            get
+            {
+                if (_pipe == null)
+                    return null;
+
+                return _pipe.OutStream;
+            }
+        }
 
         /// <summary>
         /// Gets the extended output stream.
@@ -64,7 +76,33 @@ namespace Renci.SshNet
         /// <example>
         ///     <code source="..\..\src\Renci.SshNet.Tests\Classes\SshCommandTest.cs" region="Example SshCommand CreateCommand Execute ExtendedOutputStream" language="C#" title="Use ExtendedOutputStream to get command debug execution output" />
         /// </example>
-        public Stream ExtendedOutputStream { get; private set; }
+        public Pipe.OutPipeStream ExtendedOutputStream
+        {
+            get
+            {
+                if (_extendedPipe == null)
+                    return null;
+
+                return _extendedPipe.OutStream;
+            }
+        }
+
+        /// <summary>
+        /// Gets the input stream.
+        /// </summary>
+        /// <example>
+        ///     <code source="..\..\Renci.SshNet.Tests\Classes\SshCommandTest_InOutStream.cs" region="Write to stdin and read data back from stdout" language="C#" title="Use InputStream and OutputStream to send/get command execution input/output" />
+        /// </example>
+        public Pipe.InPipeStream InputStream
+        {
+            get
+            {
+                if (_inputPipe == null)
+                    return null;
+
+                return _inputPipe.InStream;
+            }
+        }
 
         private StringBuilder _result;
         /// <summary>
@@ -230,23 +268,28 @@ namespace Renci.SshNet
             if (string.IsNullOrEmpty(CommandText))
                 throw new ArgumentException("CommandText property is empty.");
 
-            var outputStream = OutputStream;
-            if (outputStream != null)
+            if (_pipe != null)
             {
-                outputStream.Dispose();
-                OutputStream = null;
+                _pipe.Dispose();
+                _pipe = null;
             }
 
-            var extendedOutputStream = ExtendedOutputStream;
-            if (extendedOutputStream != null)
+            if (_extendedPipe != null)
             {
-                extendedOutputStream.Dispose();
-                ExtendedOutputStream = null;
+                _extendedPipe.Dispose();
+                _extendedPipe = null;
             }
 
-            //  Initialize output streams
-            OutputStream = new PipeStream();
-            ExtendedOutputStream = new PipeStream();
+            if (_inputPipe != null)
+            {
+                _inputPipe.Dispose();
+                _inputPipe = null;
+            }
+
+            //  Initialize output/input streams
+            _pipe = new Pipe(Pipe.DefaultCapacity, PipeFlags.NoCopy, PipeFlags.PipeInvisible);
+            _extendedPipe = new Pipe(Pipe.DefaultCapacity, PipeFlags.NoCopy, PipeFlags.PipeInvisible);
+            _inputPipe = new Pipe(Pipe.DefaultCapacity, PipeFlags.PipeInvisible | PipeFlags.Sync, PipeFlags.Default);
 
             _result = null;
             _error = null;
@@ -255,6 +298,32 @@ namespace Renci.SshNet
             _channel = CreateChannel();
             _channel.Open();
             _channel.SendExecRequest(CommandText);
+
+            //Start async transfer channel for input pipe
+            ThreadAbstraction.ExecuteThread(() =>
+            {
+                Pipe.OutPipeStream oStream = _inputPipe.OutStream;
+                IChannelSession chan = _channel;
+                byte[] buffer;
+                while ((buffer = oStream.ReadAvailable(5000000)) != null)
+                {
+                    chan.SendData(buffer);
+                }
+
+                if (chan != null)
+                {
+                    try
+                    {
+                        chan.SendEof();
+                    }
+                    catch (Exception)
+                    {
+                        //We can ignore the error because there will only be a exception 
+                        //if the channel or the connection is already closed.
+                    }
+                }
+            });
+
 
             return _asyncResult;
         }
@@ -395,16 +464,19 @@ namespace Renci.SshNet
 
         private void Channel_Closed(object sender, ChannelEventArgs e)
         {
-            var outputStream = OutputStream;
-            if (outputStream != null)
+            if (_pipe != null)
             {
-                outputStream.Flush();
+                _pipe.InStream.Close();
             }
 
-            var extendedOutputStream = ExtendedOutputStream;
-            if (extendedOutputStream != null)
+            if (_extendedPipe != null)
             {
-                extendedOutputStream.Flush();
+                _extendedPipe.InStream.Close();
+            }
+
+            if (_inputPipe != null)
+            {
+                _inputPipe.OutStream.Close();
             }
 
             _asyncResult.IsCompleted = true;
@@ -444,8 +516,7 @@ namespace Renci.SshNet
         {
             if (ExtendedOutputStream != null)
             {
-                ExtendedOutputStream.Write(e.Data, 0, e.Data.Length);
-                ExtendedOutputStream.Flush();
+                _extendedPipe.InStream.Write(e.Data, 0, e.Data.Length);
             }
 
             if (e.DataTypeCode == 1)
@@ -456,10 +527,9 @@ namespace Renci.SshNet
 
         private void Channel_DataReceived(object sender, ChannelDataEventArgs e)
         {
-            if (OutputStream != null)
+            if (_pipe != null)
             {
-                OutputStream.Write(e.Data, 0, e.Data.Length);
-                OutputStream.Flush();
+                _pipe.InStream.Write(e.Data, 0, e.Data.Length);
             }
 
             if (_asyncResult != null)
@@ -557,18 +627,22 @@ namespace Renci.SshNet
                     _channel = null;
                 }
 
-                var outputStream = OutputStream;
-                if (outputStream != null)
+                if (_pipe != null)
                 {
-                    outputStream.Dispose();
-                    OutputStream = null;
+                    _pipe.Dispose();
+                    _pipe = null;
                 }
 
-                var extendedOutputStream = ExtendedOutputStream;
-                if (extendedOutputStream != null)
+                if (_extendedPipe != null)
                 {
-                    extendedOutputStream.Dispose();
-                    ExtendedOutputStream = null;
+                    _extendedPipe.Dispose();
+                    _extendedPipe = null;
+                }
+
+                if (_inputPipe != null)
+                {
+                    _inputPipe.Dispose();
+                    _inputPipe = null;
                 }
 
                 var sessionErrorOccuredWaitHandle = _sessionErrorOccuredWaitHandle;

@@ -167,10 +167,10 @@ namespace Renci.SshNet
         /// <param name="path">Remote host file name.</param>
         public void Upload(Stream source, string path)
         {
-            using (var input = ServiceFactory.CreatePipeStream())
+            using (Pipe input = ServiceFactory.CreatePipe(PipeFlags.NoCopy, PipeFlags.Default))
             using (var channel = Session.CreateChannelSession())
             {
-                channel.DataReceived += (sender, e) => input.Write(e.Data, 0, e.Data.Length);
+                channel.DataReceived += (sender, e) => input.InStream.Write(e.Data, 0, e.Data.Length);
                 channel.Open();
 
                 var pathEnd = path.LastIndexOfAny(new[] { '\\', '/' });
@@ -181,12 +181,12 @@ namespace Renci.SshNet
                     var fileOnly = path.Substring(pathEnd + 1);
                     //  Send channel command request
                     channel.SendExecRequest(string.Format("scp -t \"{0}\"", pathOnly));
-                    CheckReturnCode(input);
+                    CheckReturnCode(input.OutStream);
 
                     path = fileOnly;
                 }
 
-                InternalUpload(channel, input, source, path);
+                InternalUpload(channel, input.OutStream, source, path);
             }
         }
 
@@ -209,17 +209,17 @@ namespace Renci.SshNet
             if (destination == null)
                 throw new ArgumentNullException("destination");
 
-            using (var input = ServiceFactory.CreatePipeStream())
+            using (Pipe input = ServiceFactory.CreatePipe(PipeFlags.NoCopy, PipeFlags.Default))
             using (var channel = Session.CreateChannelSession())
             {
-                channel.DataReceived += (sender, e) => input.Write(e.Data, 0, e.Data.Length);
+                channel.DataReceived += (sender, e) => input.InStream.Write(e.Data, 0, e.Data.Length);
                 channel.Open();
 
                 //  Send channel command request
                 channel.SendExecRequest(string.Format("scp -f \"{0}\"", filename));
                 SendConfirmation(channel); //  Send reply
 
-                var message = ReadString(input);
+                var message = ReadString(input.OutStream);
                 var match = FileInfoRe.Match(message);
 
                 if (match.Success)
@@ -231,7 +231,7 @@ namespace Renci.SshNet
                     var length = long.Parse(match.Result("${length}"));
                     var fileName = match.Result("${filename}");
 
-                    InternalDownload(channel, input, destination, fileName, length);
+                    InternalDownload(channel, input.OutStream, destination, fileName, length);
                 }
                 else
                 {
