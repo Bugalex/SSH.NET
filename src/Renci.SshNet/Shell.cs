@@ -195,6 +195,24 @@ namespace Renci.SshNet
             }
         }
 
+		/// <summary>
+		/// Sends the window change request.
+		/// </summary>
+		/// <param name="columns">The number of characters in each row.</param>
+		/// <param name="rows">The rows.</param>
+		/// <param name="width">The width in pixel.</param>
+		/// <param name="height">The height in pixel.</param>
+		/// <returns>
+		/// <c>true</c> if request was successful; otherwise <c>false</c>.
+		/// </returns>
+		public bool SendWindowSizeChange(uint columns, uint rows, uint width, uint height)
+		{
+			if(this._channel != null && this._channel.IsOpen)
+				return this._channel.SendWindowChangeRequest(columns, rows, width, height);
+
+			return false;
+		}
+
         private void Session_ErrorOccured(object sender, ExceptionEventArgs e)
         {
             RaiseError(e);
