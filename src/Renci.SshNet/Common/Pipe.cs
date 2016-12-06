@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Sockets;
 using System.Threading;
 
 namespace Renci.SshNet.Common
@@ -390,7 +391,7 @@ namespace Renci.SshNet.Common
 			int c = 0;
 			lock(this._syncObj)
 			{
-				bool canRemove = this.WaitRemove(async);
+				bool canRemove = this.WaitRemove(async, this.readTimeout);
 				if(!canRemove)
 					return 0;
 
@@ -409,30 +410,36 @@ namespace Renci.SshNet.Common
 
 			return c;
 		}
-		private bool WaitRemove(bool async)
+		private bool WaitRemove(bool async, int waitMilliSeconds)
 		{
 			if(this.outStream.IsClosed)
 				throw new InvalidOperationException("The output pipe stream is closed.");
 
-			int waited = 0;
-			DateTime start = DateTime.Now;
-			while(this.Count == 0 && !this.outStream.IsClosed)
-			{
-				if(this.inStream.IsClosed)
-					return false;
+            if (waitMilliSeconds < 0)
+                waitMilliSeconds = int.MaxValue;
 
-				if(this.readTimeout > 0)
-				{
-					waited = (int)(DateTime.Now - start).TotalMilliseconds;
-					if(waited >= this.readTimeout)
-						throw new TimeoutException();
-					Monitor.Wait(this._syncObj, this.readTimeout - waited);
-				}
-				else
-					Monitor.Wait(this._syncObj);
-			}
+            if (waitMilliSeconds > 0)
+            {
+                int waited = 0;
+                DateTime start = DateTime.Now;
+                while (this.Count == 0 && !this.outStream.IsClosed)
+                {
+                    if (this.inStream.IsClosed)
+                        return false;
 
-			return !this.outStream.IsClosed;
+                    if (waitMilliSeconds > 0)
+                    {
+                        waited = (int)(DateTime.Now - start).TotalMilliseconds;
+                        if (waited >= waitMilliSeconds)
+                            throw new TimeoutException();
+                        Monitor.Wait(this._syncObj, waitMilliSeconds - waited);
+                    }
+                    else
+                        Monitor.Wait(this._syncObj);
+                }
+            }
+
+			return !this.outStream.IsClosed && this.count > 0;
 		}
 
 		private int RemoveByte()
@@ -440,7 +447,7 @@ namespace Renci.SshNet.Common
 			int b = -1;
 			lock(this._syncObj)
 			{
-				bool canRemove = this.WaitRemove(false);
+				bool canRemove = this.WaitRemove(false, this.readTimeout);
 				if(!canRemove)
 					return -1;
 
@@ -465,7 +472,7 @@ namespace Renci.SshNet.Common
 			byte[] buffer = null;
 			lock(this._syncObj)
 			{
-				bool canRemove = this.WaitRemove(false);
+				bool canRemove = this.WaitRemove(false, this.readTimeout);
 				if(!canRemove)
 					return null;
 
@@ -634,8 +641,6 @@ namespace Renci.SshNet.Common
 			}
 
 			object _syncObj = new object();	//Sync object for async write operations.
-
-			PipeAsyncResult asyncOp;		//Current async write operation status.
 
 			bool isClosed = false;
 			/// <summary>
@@ -836,47 +841,46 @@ namespace Renci.SshNet.Common
 				throw new NotSupportedException("Reading from the input end of a pipe is not possible.");
 			}
 
-			/// <summary>
-			/// Begins an asynchronous read operation.
-			/// </summary>
-			/// <param name="offset">The zero-based byte offset in buffer at which to begin storing the data read from the current stream. </param>
-			/// <param name="count">The maximum number of bytes to be read from the current stream. </param>
-			/// <param name="buffer">An array of bytes. When this method returns, the buffer contains the specified byte array with the values between offset and (offset + count - 1) replaced by the bytes read from the current source. </param>
-			/// <param name="callback">An optional asynchronous callback, to be called when the read is complete.</param>
-			/// <param name="state">A user-provided object that distinguishes this particular asynchronous read request from other requests.</param>
-			/// <returns>An <see cref="System.IAsyncResult"/> that represents the asynchronous read, which could still be pending.</returns>
-			/// <exception cref="System.NotSupportedException">The stream does not support reading. </exception>
-			public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
-			{
-				throw new NotSupportedException("Reading from the input end of a pipe is not possible.");
-			}
+            /// <summary>
+            /// Begins an asynchronous read operation.
+            /// </summary>
+            /// <param name="offset">The zero-based byte offset in buffer at which to begin storing the data read from the current stream.</param>
+            /// <param name="count">The maximum number of bytes to be read from the current stream.</param>
+            /// <param name="buffer">An array of bytes. When this method returns, the buffer contains the specified byte array with the values between offset and (offset + count - 1) replaced by the bytes read from the current source.</param>
+            /// <param name="callback">An optional asynchronous callback, to be called when the read is complete.</param>
+            /// <param name="state">A user-provided object that distinguishes this particular asynchronous read request from other requests.</param>
+            /// <returns>An <see cref="System.IAsyncResult"/> that represents the asynchronous read, which could still be pending.</returns>
+            /// <exception cref="System.NotSupportedException">The stream does not support reading.</exception>
+            public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
+            {
+                throw new NotSupportedException("Reading from the input end of a pipe is not possible.");
+            }
 
-			/// <summary>
-			/// Waits for the pending asynchronous read to complete.
-			/// </summary>
-			/// <param name="asyncResult">The reference to the pending asynchronous request to finish.</param>
-			/// <returns>The number of bytes read from the stream, between zero (0) and the number of bytes you requested. Streams return zero (0) only at the end of the stream, otherwise, they should block until at least one byte is available.</returns>
-			/// <exception cref="System.NotSupportedException">The stream does not support reading. </exception>
-			public override int EndRead(IAsyncResult asyncResult)
-			{
-				throw new NotSupportedException("Reading from the input end of a pipe is not possible.");
-			}
+            /// <summary>
+            /// Waits for the pending asynchronous read to complete.
+            /// </summary>
+            /// <param name="asyncResult">The reference to the pending asynchronous request to finish.</param>
+            /// <returns>The number of bytes read from the stream, between zero (0) and the number of bytes you requested. Streams return zero (0) only at the end of the stream, otherwise, they should block until at least one byte is available.</returns>
+            /// <exception cref="System.NotSupportedException">The stream does not support reading. </exception>
+            public override int EndRead(IAsyncResult asyncResult)
+            {
+                throw new NotSupportedException("Reading from the input end of a pipe is not possible.");
+            }
 
-
-			/// <summary>
-			/// Writes a sequence of bytes to the current stream and advances the current position within this stream by the number of bytes written.
-			/// </summary>
-			/// <param name="offset">The zero-based byte offset in buffer at which to begin copying bytes to the current stream.</param>
-			/// <param name="count">The number of bytes to be written to the current stream.</param>
-			/// <param name="buffer">An array of bytes. This method copies count bytes from buffer to the current stream.</param>
-			/// <exception cref="System.IO.IOException">An I/O error occurs.</exception>
-			/// <exception cref="System.NotSupportedException">The stream does not support writing.</exception>
-			/// <exception cref="System.ObjectDisposedException">Methods were called after the stream was closed.</exception>
-			/// <exception cref="System.ArgumentNullException">buffer is null.</exception>
-			/// <exception cref="System.ArgumentException">The sum of offset and count is greater than the buffer length.</exception>
-			/// <exception cref="System.ArgumentOutOfRangeException">offset or count is negative.</exception>
-			/// <filterpriority>1</filterpriority>
-			public override void Write(byte[] buffer, int offset, int count)
+            /// <summary>
+            /// Writes a sequence of bytes to the current stream and advances the current position within this stream by the number of bytes written.
+            /// </summary>
+            /// <param name="offset">The zero-based byte offset in buffer at which to begin copying bytes to the current stream.</param>
+            /// <param name="count">The number of bytes to be written to the current stream.</param>
+            /// <param name="buffer">An array of bytes. This method copies count bytes from buffer to the current stream.</param>
+            /// <exception cref="System.IO.IOException">An I/O error occurs.</exception>
+            /// <exception cref="System.NotSupportedException">The stream does not support writing.</exception>
+            /// <exception cref="System.ObjectDisposedException">Methods were called after the stream was closed.</exception>
+            /// <exception cref="System.ArgumentNullException">buffer is null.</exception>
+            /// <exception cref="System.ArgumentException">The sum of offset and count is greater than the buffer length.</exception>
+            /// <exception cref="System.ArgumentOutOfRangeException">offset or count is negative.</exception>
+            /// <filterpriority>1</filterpriority>
+            public override void Write(byte[] buffer, int offset, int count)
 			{
 				if(this.isClosed)
 					throw new ObjectDisposedException("The input end of the pipe is closed.");
@@ -900,77 +904,6 @@ namespace Renci.SshNet.Common
 			}
 
 			/// <summary>
-			/// Begins an asynchronous write operation.
-			/// </summary>
-			/// <param name="offset">The zero-based byte offset in buffer at which to begin copying bytes to the current stream. </param>
-			/// <param name="count">The number of bytes to be written to the current stream. </param>
-			/// <param name="buffer">An array of bytes. This method copies count bytes from buffer to the current stream. </param>
-			/// <param name="callback">An optional asynchronous callback, to be called when the write is complete.</param>
-			/// <param name="state">A user-provided object that distinguishes this particular asynchronous write request from other requests.</param>
-			/// <returns>An <see cref="System.IAsyncResult"/> that represents the asynchronous write, which could still be pending.</returns>
-			/// <exception cref="System.ObjectDisposedException">Methods were called after the stream was closed.</exception>
-			public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
-			{
-				if(this.isClosed)
-					throw new ObjectDisposedException("The input end of the pipe is closed.");
-
-				lock(this._syncObj)
-				{
-					if(this.asyncOp != null)
-						throw new InvalidOperationException("A async operation is already in progress.");
-
-					this.asyncOp = new PipeAsyncResult(state);
-					new Action(() => {
-						Exception error = null;
-						try
-						{
-							this.pipe.AddData(buffer, offset, count, true);
-							this.asyncOp.count = count;
-						}
-						catch(Exception ex)
-						{
-							error = ex;
-						}
-
-						lock(this._syncObj)
-						{
-							this.asyncOp.error = error;
-
-							this.asyncOp.asyncWaitHandle.Set();
-						}
-
-						if(callback != null)
-							callback(this.asyncOp);
-					}).BeginInvoke(null, null);
-				}
-
-				return this.asyncOp;
-			}
-
-			/// <summary>
-			/// Ends an asynchronous write operation.
-			/// </summary>
-			/// <param name="asyncResult">A reference to the outstanding asynchronous I/O request.</param>
-			/// <exception cref="System.InvalidOperationException">asyncResult did not originate from a BeginWrite method on the current stream.</exception>
-			public override void EndWrite(IAsyncResult asyncResult)
-			{
-				PipeAsyncResult r;
-				lock(this._syncObj)
-				{
-					if(this.asyncOp != asyncResult)
-						throw new ArgumentException("The async result argument is invalid.");
-
-					this.asyncOp.AsyncWaitHandle.WaitOne();
-					r = this.asyncOp;
-					this.asyncOp = null;
-				}
-
-				if(r.error != null)
-					throw r.error;
-			}
-
-
-			/// <summary>
 			/// Closes the current stream and releases any resources (such as sockets and file handles) associated with the current stream. Instead of calling this method, ensure that the stream is properly disposed.
 			/// </summary>
 			public override void Close()
@@ -988,10 +921,6 @@ namespace Renci.SshNet.Common
 				{
 					this.isClosed = true;
 					this.pipe.Pulse();
-
-					PipeAsyncResult r = this.asyncOp;
-					if(r != null)
-						r.asyncWaitHandle.WaitOne();	//Cancel the operation instead of waiting?
 				}
 				if(disposing)
 				{
@@ -1056,8 +985,6 @@ namespace Renci.SshNet.Common
 			}
 
 			object _syncObj = new object();	//Sync object for async write operations.
-
-			PipeAsyncResult asyncOp;		//Current async read operation status.
 
 			bool isClosed = false;
 			/// <summary>
@@ -1273,77 +1200,6 @@ namespace Renci.SshNet.Common
 			}
 
 			/// <summary>
-			/// Begins an asynchronous read operation.
-			/// </summary>
-			/// <param name="offset">The zero-based byte offset in buffer at which to begin storing the data read from the current stream.</param>
-			/// <param name="count">The maximum number of bytes to be read from the current stream. </param>
-			/// <param name="buffer">An array of bytes. When this method returns, the buffer contains the specified byte array with the values between offset and (offset + count - 1) replaced by the bytes read from the current source.</param>
-			/// <param name="callback">An optional asynchronous callback, to be called when the read is complete.</param>
-			/// <param name="state">A user-provided object that distinguishes this particular asynchronous read request from other requests.</param>
-			/// <returns>An <see cref="System.IAsyncResult"/> that represents the asynchronous read, which could still be pending.</returns>
-			public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
-			{
-				if(this.isClosed)
-					throw new ObjectDisposedException("The output end of the pipe is closed.");
-
-				lock(this._syncObj)
-				{
-					if(this.asyncOp != null)
-						throw new InvalidOperationException("A async operation is already in progress.");
-
-					this.asyncOp = new PipeAsyncResult(state);
-					new Action(() =>
-					{
-						Exception error = null;
-						try
-						{
-							this.asyncOp.count = this.pipe.RemoveData(buffer, offset, count, true);
-						}
-						catch(Exception ex)
-						{
-							error = ex;
-						}
-
-						lock(this._syncObj)
-						{
-							this.asyncOp.error = error;
-
-							this.asyncOp.asyncWaitHandle.Set();
-						}
-
-						if(callback != null)
-							callback(this.asyncOp);
-					}).BeginInvoke(null, null);
-				}
-
-				return this.asyncOp;
-			}
-
-			/// <summary>
-			/// Waits for the pending asynchronous read to complete.
-			/// </summary>
-			/// <param name="asyncResult">The reference to the pending asynchronous request to finish.</param>
-			/// <returns>The number of bytes read from the stream, between zero (0) and the number of bytes you requested. Streams return zero (0) only at the end of the stream, otherwise, they should block until at least one byte is available.</returns>
-			public override int EndRead(IAsyncResult asyncResult)
-			{
-				PipeAsyncResult r;
-				lock(this._syncObj)
-				{
-					if(this.asyncOp != asyncResult)
-						throw new ArgumentException("The async result argument is invalid.");
-
-					this.asyncOp.AsyncWaitHandle.WaitOne();
-					r = this.asyncOp;
-					this.asyncOp = null;
-				}
-
-				if(r.error != null)
-					throw r.error;
-
-				return r.count;
-			}
-
-			/// <summary>
 			/// Reads all available data. If no data is available it will wait till at least one byte is available.
 			/// </summary>
 			/// <returns>The data read from the stream.</returns>
@@ -1398,25 +1254,26 @@ namespace Renci.SshNet.Common
 				throw new NotSupportedException("Writing to the output end of a pipe is not possible.");
 			}
 
-			/// <summary>
-			/// This method is not supported.
-			/// </summary>
-			/// <param name="buffer"></param>
-			/// <param name="offset"></param>
-			/// <param name="count"></param>
-			/// <param name="callback"></param>
-			/// <param name="state"></param>
-			/// <returns></returns>
-			public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
+            /// <summary>
+            /// This method is not supported.
+            /// </summary>
+            /// <param name="offset">The zero-based byte offset in buffer at which to begin storing the data read from the current stream.</param>
+            /// <param name="count">The maximum number of bytes to be read from the current stream.</param>
+            /// <param name="buffer">An array of bytes. When this method returns, the buffer contains the specified byte array with the values between offset and (offset + count - 1) replaced by the bytes read from the current source.</param>
+            /// <param name="callback">An optional asynchronous callback, to be called when the read is complete.</param>
+            /// <param name="state">A user-provided object that distinguishes this particular asynchronous read request from other requests.</param>
+            /// <returns>An <see cref="System.IAsyncResult"/> that represents the asynchronous write, which could still be pending.</returns>
+            /// <exception cref="System.NotSupportedException">The stream does not support reading.</exception>
+            public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback callback, object state)
 			{
 				throw new NotSupportedException("Writing to the output end of a pipe is not possible.");
 			}
 
-			/// <summary>
-			/// This method is not supported.
-			/// </summary>
-			/// <param name="asyncResult">A reference to the outstanding asynchronous I/O request.</param>
-			/// <exception cref="System.NotSupportedException">The stream does not support seeking, such as if the stream is constructed from a pipe or console output.</exception>
+            /// <summary>
+            /// Waits for the pending asynchronous read to complete.
+            /// </summary>
+            /// <param name="asyncResult">The reference to the pending asynchronous request to finish.</param>
+            /// <exception cref="System.NotSupportedException">The stream does not support writing. </exception>
 			public override void EndWrite(IAsyncResult asyncResult)
 			{
 				throw new NotSupportedException("Writing to the output end of a pipe is not possible.");
@@ -1452,10 +1309,6 @@ namespace Renci.SshNet.Common
 				{
 					this.isClosed = true;
 					this.pipe.Clear();
-
-					PipeAsyncResult r = this.asyncOp;
-					if(r != null)
-						r.asyncWaitHandle.WaitOne();	//Cancel the operation instead of waiting?
 				}
 				if(disposing)
 				{
@@ -1464,42 +1317,28 @@ namespace Renci.SshNet.Common
 
 				base.Dispose(disposing);
 			}
-		}
 
-		private class PipeAsyncResult : IAsyncResult
-		{
-			public PipeAsyncResult(object state)
-			{
-				this.asyncState = state;
-			}
+            /// <summary>
+            /// Waits till data is available to read.
+            /// </summary>
+            /// <param name="microSeconds">The maximum time to wait. The value will be rounded to milliseconds.</param>
+            /// <param name="mode">The polling mode.</param>
+            /// <returns>true, if data is ready to read.</returns>
+            public bool Poll(int microSeconds, SelectMode mode)
+            {
+                if (mode != SelectMode.SelectRead)
+                    throw new ArgumentException("Invalid poll mode.");
 
+                try
+                {
+                    lock (this.pipe._syncObj)
+                        return this.pipe.WaitRemove(false, microSeconds / 1000);
+                }
+                catch(TimeoutException) { }
 
-			object asyncState;
-			public object AsyncState
-			{
-				get { return this.asyncState; }
-			}
-
-			internal ManualResetEvent asyncWaitHandle = new ManualResetEvent(false);
-			public WaitHandle AsyncWaitHandle
-			{
-				get { return asyncWaitHandle; }
-			}
-
-			public bool CompletedSynchronously
-			{
-				get { return false; }
-			}
-
-			public bool IsCompleted
-			{
-				get { return this.asyncWaitHandle.WaitOne(0); }
-			}
-
-			internal Exception error;
-
-			internal int count;
-		}
+                return false;
+            }
+        }
 
 		#endregion
 	}
