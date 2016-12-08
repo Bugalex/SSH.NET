@@ -19,7 +19,7 @@ namespace Renci.SshNet
         /// <summary>
         /// Gets connection username.
         /// </summary>
-        public string Username { get; private set; }
+        public virtual string Username { get; protected set; }
 
         /// <summary>
         /// Gets list of allowed authentications.

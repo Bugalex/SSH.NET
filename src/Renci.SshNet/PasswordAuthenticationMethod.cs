@@ -17,15 +17,23 @@ namespace Renci.SshNet
         private Session _session;
         private EventWaitHandle _authenticationCompleted = new AutoResetEvent(false);
         private Exception _exception;
-        private readonly RequestMessage _requestMessage;
-        private readonly byte[] _password;
+        private readonly RequestMessage _dummyRequestMessage;
 
         /// <summary>
         /// Gets authentication method name
         /// </summary>
         public override string Name
         {
-            get { return _requestMessage.MethodName; }
+            get { return _dummyRequestMessage.MethodName; }
+        }
+
+        /// <summary>
+        /// Gets or sets the password
+        /// </summary>
+        protected virtual byte[] Password
+        {
+            get;
+            set;
         }
 
         /// <summary>
@@ -58,8 +66,8 @@ namespace Renci.SshNet
             if (password == null)
                 throw new ArgumentNullException("password");
 
-            _password = password;
-            _requestMessage = new RequestMessagePassword(ServiceName.Connection, Username, _password);
+            Password = password;
+            _dummyRequestMessage = new RequestMessagePassword(ServiceName.Connection, Username, password);
         }
 
         /// <summary>
@@ -67,7 +75,7 @@ namespace Renci.SshNet
         /// </summary>
         /// <param name="session">The session to authenticate.</param>
         /// <returns>
-        /// Result of authentication  process.
+        /// Result of authentication process.
         /// </returns>
         /// <exception cref="ArgumentNullException"><paramref name="session" /> is <c>null</c>.</exception>
         public override AuthenticationResult Authenticate(Session session)
@@ -84,7 +92,8 @@ namespace Renci.SshNet
             try
             {
                 session.RegisterMessage("SSH_MSG_USERAUTH_PASSWD_CHANGEREQ");
-                session.SendMessage(_requestMessage);
+                RequestMessagePassword requestMessage = new RequestMessagePassword(ServiceName.Connection, Username, Password);
+                session.SendMessage(requestMessage);
                 session.WaitOnHandle(_authenticationCompleted);
             }
             finally 
@@ -138,7 +147,7 @@ namespace Renci.SshNet
                     }
 
                     //  Send new authentication request with new password
-                    _session.SendMessage(new RequestMessagePassword(ServiceName.Connection, Username, _password, eventArgs.NewPassword));
+                    _session.SendMessage(new RequestMessagePassword(ServiceName.Connection, Username, Password, eventArgs.NewPassword));
                 }
                 catch (Exception exp)
                 {

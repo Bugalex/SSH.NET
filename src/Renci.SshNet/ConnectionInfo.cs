@@ -85,7 +85,7 @@ namespace Renci.SshNet
         /// <summary>
         /// Gets connection username.
         /// </summary>
-        public string Username { get; private set; }
+        public virtual string Username { get; protected set; }
 
         /// <summary>
         /// Gets proxy type.
@@ -409,6 +409,8 @@ namespace Renci.SshNet
             if (serviceFactory == null)
                 throw new ArgumentNullException("serviceFactory");
 
+            this.OnAuthenticating(EventArgs.Empty);
+
             IsAuthenticated = false;
             var clientAuthentication = serviceFactory.CreateClientAuthentication();
             clientAuthentication.Authenticate(this, session);
@@ -438,6 +440,22 @@ namespace Renci.SshNet
         IList<IAuthenticationMethod> IConnectionInfoInternal.AuthenticationMethods
         {
             get { return AuthenticationMethods.Cast<IAuthenticationMethod>().ToList(); }
+        }
+
+
+        /// <summary>
+        /// Called before the authentication starts
+        /// </summary>
+        public event EventHandler Authenticating;
+
+        /// <summary>
+        /// Called before the authentication starts
+        /// </summary>
+        /// <param name="e">The event data.</param>
+        protected virtual void OnAuthenticating(EventArgs e)
+        {
+            if (this.Authenticating != null)
+                this.Authenticating(this, e);
         }
     }
 }
