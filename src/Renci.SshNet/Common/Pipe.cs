@@ -290,7 +290,7 @@ namespace Renci.SshNet.Common
 		private void Pulse()
 		{
 			lock(this._syncObj)
-				Monitor.Pulse(this._syncObj);
+				Monitor.PulseAll(this._syncObj);
 		}
 
 		private void Flush(int timeout)
@@ -391,7 +391,7 @@ namespace Renci.SshNet.Common
 			int c = 0;
 			lock(this._syncObj)
 			{
-				bool canRemove = this.WaitRemove(async, this.readTimeout);
+				bool canRemove = this.WaitRemove(this.readTimeout);
 				if(!canRemove)
 					return 0;
 
@@ -410,7 +410,7 @@ namespace Renci.SshNet.Common
 
 			return c;
 		}
-		private bool WaitRemove(bool async, int waitMilliSeconds)
+		private bool WaitRemove(int waitMilliSeconds)
 		{
 			if(this.outStream.IsClosed)
 				throw new InvalidOperationException("The output pipe stream is closed.");
@@ -447,7 +447,7 @@ namespace Renci.SshNet.Common
 			int b = -1;
 			lock(this._syncObj)
 			{
-				bool canRemove = this.WaitRemove(false, this.readTimeout);
+				bool canRemove = this.WaitRemove(this.readTimeout);
 				if(!canRemove)
 					return -1;
 
@@ -472,7 +472,7 @@ namespace Renci.SshNet.Common
 			byte[] buffer = null;
 			lock(this._syncObj)
 			{
-				bool canRemove = this.WaitRemove(false, this.readTimeout);
+				bool canRemove = this.WaitRemove(this.readTimeout);
 				if(!canRemove)
 					return null;
 
@@ -507,7 +507,9 @@ namespace Renci.SshNet.Common
 			this.inStream.Dispose();
 			this.outStream.Dispose();
 			this.Clear();
-		}
+
+            this.Pulse();
+        }
 
 
 		#region Nested types
@@ -1309,8 +1311,9 @@ namespace Renci.SshNet.Common
 				{
 					this.isClosed = true;
 					this.pipe.Clear();
-				}
-				if(disposing)
+                    this.pipe.Pulse();
+                }
+                if (disposing)
 				{
 					this.pipe = null;
 				}
@@ -1321,18 +1324,20 @@ namespace Renci.SshNet.Common
             /// <summary>
             /// Waits till data is available to read.
             /// </summary>
-            /// <param name="microSeconds">The maximum time to wait. The value will be rounded to milliseconds.</param>
+            /// <param name="milliSeconds">The maximum time to wait.</param>
             /// <param name="mode">The polling mode.</param>
             /// <returns>true, if data is ready to read.</returns>
-            public bool Poll(int microSeconds, SelectMode mode)
+            public bool Poll(int milliSeconds, SelectMode mode)
             {
                 if (mode != SelectMode.SelectRead)
                     throw new ArgumentException("Invalid poll mode.");
+                if (this.isClosed)
+                    throw new ObjectDisposedException("The output end of the pipe is closed.");
 
                 try
                 {
                     lock (this.pipe._syncObj)
-                        return this.pipe.WaitRemove(false, microSeconds / 1000);
+                        return this.pipe.WaitRemove(milliSeconds);
                 }
                 catch(TimeoutException) { }
 
