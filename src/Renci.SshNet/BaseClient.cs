@@ -263,18 +263,37 @@ namespace Renci.SshNet
         }
 
         /// <summary>
+        /// Called after the <see cref="BaseClient.Connect()"/> method was called.
+        /// </summary>
+        public event EventHandler Connecting;
+
+        /// <summary>
         /// Called when client is connecting to the server.
         /// </summary>
         protected virtual void OnConnecting()
         {
+            if (this.Connecting != null)
+                this.Connecting(this, EventArgs.Empty);
         }
+
+        /// <summary>
+        /// Called after the socket connection is established and the authentication was successful.
+        /// </summary>
+        public event EventHandler Connected;
 
         /// <summary>
         /// Called when client is connected to the server.
         /// </summary>
         protected virtual void OnConnected()
         {
+            if (this.Connected != null)
+                this.Connected(this, EventArgs.Empty);
         }
+
+        /// <summary>
+        /// Called when client is disconnecting from the server.
+        /// </summary>
+        public event EventHandler Disconnecting;
 
         /// <summary>
         /// Called when client is disconnecting from the server.
@@ -283,13 +302,22 @@ namespace Renci.SshNet
         {
             if (Session != null)
                 Session.OnDisconnecting();
+            if (this.Disconnecting != null)
+                this.Disconnecting(this, EventArgs.Empty);
         }
+
+        /// <summary>
+        /// Called after the connection was closed.
+        /// </summary>
+        public event EventHandler Disconnected;
 
         /// <summary>
         /// Called when client is disconnected from the server.
         /// </summary>
         protected virtual void OnDisconnected()
         {
+            if (this.Disconnected != null)
+                this.Disconnected(this, EventArgs.Empty);
         }
 
         private void Session_ErrorOccured(object sender, ExceptionEventArgs e)
