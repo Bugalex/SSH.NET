@@ -43,6 +43,50 @@
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>..\Renci.SshNet.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;FEATURE_REGEX_COMPILE;FEATURE_BINARY_SERIALIZATION;FEATURE_RNG_CREATE;FEATURE_SOCKET_SYNC;FEATURE_SOCKET_EAP;FEATURE_SOCKET_APM;FEATURE_SOCKET_SETSOCKETOPTION;FEATURE_SOCKET_POLL;FEATURE_STREAM_APM;FEATURE_DNS_SYNC;FEATURE_THREAD_COUNTDOWNEVENT;FEATURE_THREAD_THREADPOOL;FEATURE_THREAD_SLEEP;FEATURE_HASH_MD5;FEATURE_HASH_SHA1_CREATE;FEATURE_HASH_SHA256_CREATE;FEATURE_HASH_SHA384_CREATE;FEATURE_HASH_SHA512_CREATE;FEATURE_HASH_RIPEMD160_CREATE;FEATURE_HMAC_MD5;FEATURE_HMAC_SHA1;FEATURE_HMAC_SHA256;FEATURE_HMAC_SHA384;FEATURE_HMAC_SHA512;FEATURE_HMAC_RIPEMD160;FEATURE_MEMORYSTREAM_GETBUFFER;FEATURE_DIAGNOSTICS_TRACESOURCE;FEATURE_ENCODING_ASCII</DefineConstants>
+    <DocumentationFile>bin\Debug\Renci.SshNet.xml</DocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>4</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>FEATURE_REGEX_COMPILE;FEATURE_BINARY_SERIALIZATION;FEATURE_RNG_CREATE;FEATURE_SOCKET_SYNC;FEATURE_SOCKET_EAP;FEATURE_SOCKET_APM;FEATURE_SOCKET_SETSOCKETOPTION;FEATURE_SOCKET_POLL;FEATURE_STREAM_APM;FEATURE_DNS_SYNC;FEATURE_THREAD_COUNTDOWNEVENT;FEATURE_THREAD_THREADPOOL;FEATURE_THREAD_SLEEP;FEATURE_HASH_MD5;FEATURE_HASH_SHA1_CREATE;FEATURE_HASH_SHA256_CREATE;FEATURE_HASH_SHA384_CREATE;FEATURE_HASH_SHA512_CREATE;FEATURE_HASH_RIPEMD160_CREATE;FEATURE_HMAC_MD5;FEATURE_HMAC_SHA1;FEATURE_HMAC_SHA256;FEATURE_HMAC_SHA384;FEATURE_HMAC_SHA512;FEATURE_HMAC_RIPEMD160;FEATURE_MEMORYSTREAM_GETBUFFER;FEATURE_DIAGNOSTICS_TRACESOURCE;FEATURE_ENCODING_ASCII</DefineConstants>
+    <DocumentationFile>bin\Release\Renci.SshNet.xml</DocumentationFile>
+    <Optimize>true</Optimize>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;FEATURE_REGEX_COMPILE;FEATURE_BINARY_SERIALIZATION;FEATURE_RNG_CREATE;FEATURE_SOCKET_SYNC;FEATURE_SOCKET_EAP;FEATURE_SOCKET_APM;FEATURE_SOCKET_SETSOCKETOPTION;FEATURE_SOCKET_POLL;FEATURE_STREAM_APM;FEATURE_DNS_SYNC;FEATURE_THREAD_COUNTDOWNEVENT;FEATURE_THREAD_THREADPOOL;FEATURE_THREAD_SLEEP;FEATURE_HASH_MD5;FEATURE_HASH_SHA1_CREATE;FEATURE_HASH_SHA256_CREATE;FEATURE_HASH_SHA384_CREATE;FEATURE_HASH_SHA512_CREATE;FEATURE_HASH_RIPEMD160_CREATE;FEATURE_HMAC_MD5;FEATURE_HMAC_SHA1;FEATURE_HMAC_SHA256;FEATURE_HMAC_SHA384;FEATURE_HMAC_SHA512;FEATURE_HMAC_RIPEMD160;FEATURE_MEMORYSTREAM_GETBUFFER;FEATURE_DIAGNOSTICS_TRACESOURCE;FEATURE_ENCODING_ASCII</DefineConstants>
+    <DocumentationFile>bin\Debug\Renci.SshNet.xml</DocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>4</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>FEATURE_REGEX_COMPILE;FEATURE_BINARY_SERIALIZATION;FEATURE_RNG_CREATE;FEATURE_SOCKET_SYNC;FEATURE_SOCKET_EAP;FEATURE_SOCKET_APM;FEATURE_SOCKET_SETSOCKETOPTION;FEATURE_SOCKET_POLL;FEATURE_STREAM_APM;FEATURE_DNS_SYNC;FEATURE_THREAD_COUNTDOWNEVENT;FEATURE_THREAD_THREADPOOL;FEATURE_THREAD_SLEEP;FEATURE_HASH_MD5;FEATURE_HASH_SHA1_CREATE;FEATURE_HASH_SHA256_CREATE;FEATURE_HASH_SHA384_CREATE;FEATURE_HASH_SHA512_CREATE;FEATURE_HASH_RIPEMD160_CREATE;FEATURE_HMAC_MD5;FEATURE_HMAC_SHA1;FEATURE_HMAC_SHA256;FEATURE_HMAC_SHA384;FEATURE_HMAC_SHA512;FEATURE_HMAC_RIPEMD160;FEATURE_MEMORYSTREAM_GETBUFFER;FEATURE_DIAGNOSTICS_TRACESOURCE;FEATURE_ENCODING_ASCII</DefineConstants>
+    <DocumentationFile>bin\Release\Renci.SshNet.xml</DocumentationFile>
+    <Optimize>true</Optimize>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -444,6 +488,9 @@
     <Compile Include="SubsystemSession.cs" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\..\LICENSE">
+      <Link>LICENSE</Link>
+    </EmbeddedResource>
     <None Include="..\Renci.SshNet.snk">
       <Link>Renci.SshNet.snk</Link>
     </None>
