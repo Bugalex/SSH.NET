@@ -9,7 +9,7 @@ namespace Renci.SshNet.Tests.Classes
     [TestClass]
     public class PipeStreamTest_Dispose : TestBase
     {
-        private PipeStream _pipeStream;
+        private Pipe _pipeStream;
 
         protected override void OnInit()
         {
@@ -21,7 +21,7 @@ namespace Renci.SshNet.Tests.Classes
 
         private void Arrange()
         {
-            _pipeStream = new PipeStream();
+            _pipeStream = new Pipe(200 * 1024 * 1024);
         }
 
         private void Act()
@@ -30,17 +30,19 @@ namespace Renci.SshNet.Tests.Classes
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void CanRead_ShouldReturnTrue()
         {
             Assert.IsFalse(_pipeStream.CanRead);
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void Flush_ShouldThrowObjectDisposedException()
         {
             try
             {
-                _pipeStream.Flush();
+                _pipeStream.InStream.Flush();
                 Assert.Fail();
             }
             catch (ObjectDisposedException)
@@ -49,25 +51,36 @@ namespace Renci.SshNet.Tests.Classes
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void MaxBufferLength_Getter_ShouldReturnTwoHundredMegabyte()
         {
-            Assert.AreEqual(200 * 1024 * 1024, _pipeStream.MaxBufferLength);
+            Assert.AreEqual(200 * 1024 * 1024, _pipeStream.Capacity);
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void MaxBufferLength_Setter_ShouldModifyMaxBufferLength()
         {
             var newValue = new Random().Next(1, int.MaxValue);
-            _pipeStream.MaxBufferLength = newValue;
-            Assert.AreEqual(newValue, _pipeStream.MaxBufferLength);
+            _pipeStream.Capacity = newValue;
+            Assert.AreEqual(newValue, _pipeStream.Capacity);
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void Length_ShouldThrowObjectDisposedException()
         {
             try
             {
-                var value = _pipeStream.Length;
+                var value = _pipeStream.InStream.Length;
+                Assert.Fail("" + value);
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            try
+            {
+                var value = _pipeStream.OutStream.Length;
                 Assert.Fail("" + value);
             }
             catch (ObjectDisposedException)
@@ -76,17 +89,19 @@ namespace Renci.SshNet.Tests.Classes
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void Position_Getter_ShouldReturnZero()
         {
-            Assert.AreEqual(0, _pipeStream.Position);
+            Assert.AreEqual(0, _pipeStream.OutStream.Position);
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void Position_Setter_ShouldThrowNotSupportedException()
         {
             try
             {
-                _pipeStream.Position = 0;
+                _pipeStream.OutStream.Position = 0;
                 Assert.Fail();
             }
             catch (NotSupportedException)
@@ -95,6 +110,7 @@ namespace Renci.SshNet.Tests.Classes
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void Read_ByteArrayAndOffsetAndCount_ShouldThrowObjectDisposedException()
         {
             var buffer = new byte[0];
@@ -103,7 +119,7 @@ namespace Renci.SshNet.Tests.Classes
 
             try
             {
-                _pipeStream.Read(buffer, offset, count);
+                _pipeStream.OutStream.Read(buffer, offset, count);
                 Assert.Fail();
             }
             catch (ObjectDisposedException)
@@ -112,11 +128,12 @@ namespace Renci.SshNet.Tests.Classes
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void ReadByte_ShouldThrowObjectDisposedException()
         {
             try
             {
-                _pipeStream.ReadByte();
+                _pipeStream.OutStream.ReadByte();
                 Assert.Fail();
             }
             catch (ObjectDisposedException)
@@ -125,11 +142,20 @@ namespace Renci.SshNet.Tests.Classes
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void Seek_ShouldThrowNotSupportedException()
         {
             try
             {
-                _pipeStream.Seek(0, SeekOrigin.Begin);
+                _pipeStream.OutStream.Seek(0, SeekOrigin.Begin);
+                Assert.Fail();
+            }
+            catch (NotSupportedException)
+            {
+            }
+            try
+            {
+                _pipeStream.InStream.Seek(0, SeekOrigin.Begin);
                 Assert.Fail();
             }
             catch (NotSupportedException)
@@ -138,11 +164,20 @@ namespace Renci.SshNet.Tests.Classes
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void SetLength_ShouldThrowNotSupportedException()
         {
             try
             {
-                _pipeStream.SetLength(0);
+                _pipeStream.OutStream.SetLength(0);
+                Assert.Fail();
+            }
+            catch (NotSupportedException)
+            {
+            }
+            try
+            {
+                _pipeStream.InStream.SetLength(0);
                 Assert.Fail();
             }
             catch (NotSupportedException)
@@ -151,6 +186,7 @@ namespace Renci.SshNet.Tests.Classes
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void Write_ByteArrayAndOffsetAndCount_ShouldThrowObjectDisposedException()
         {
             var buffer = new byte[0];
@@ -159,7 +195,7 @@ namespace Renci.SshNet.Tests.Classes
 
             try
             {
-                _pipeStream.Write(buffer, offset, count);
+                _pipeStream.InStream.Write(buffer, offset, count);
                 Assert.Fail();
             }
             catch (ObjectDisposedException)
@@ -168,13 +204,14 @@ namespace Renci.SshNet.Tests.Classes
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void WriteByte_ShouldThrowObjectDisposedException()
         {
             const byte b = 0x0a;
 
             try
             {
-                _pipeStream.WriteByte(b);
+                _pipeStream.InStream.WriteByte(b);
                 Assert.Fail();
             }
             catch (ObjectDisposedException)

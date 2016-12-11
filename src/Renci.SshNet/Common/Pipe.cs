@@ -362,7 +362,7 @@ namespace Renci.SshNet.Common
 			while((this.count + count > this.capacity || this.isFlushing) && !this.outStream.IsClosed)
 			{
 				if(this.inStream.IsClosed)
-					throw new InvalidOperationException("The input pipe stream is closed.");
+					throw new ObjectDisposedException("Pipe.InPipeStream");
 
 				if(this.writeTimeout > 0)
 				{
@@ -375,7 +375,9 @@ namespace Renci.SshNet.Common
 					Monitor.Wait(this._syncObj);
 			}
 
-			if(this.outStream.IsClosed)
+            if (this.inStream.IsClosed)
+                throw new ObjectDisposedException("Pipe.InPipeStream");
+            if (this.outStream.IsClosed)
 				throw new InvalidOperationException("The output pipe stream is closed.");
 		}
 
@@ -759,7 +761,12 @@ namespace Renci.SshNet.Common
             /// <filterpriority>1</filterpriority>
 			public override long Length
 			{
-				get { return this.pipe.Count; }
+				get
+                {
+                    if (this.pipe == null || this.isClosed)
+                        throw new ObjectDisposedException("Pipe.InPipeStream");
+                    return this.pipe.Count;
+                }
 			}
 
 			/// <summary>
@@ -784,12 +791,14 @@ namespace Renci.SshNet.Common
 
 
 			/// <summary>
-			/// Clears all buffers for this stream and wait till all data is read from the output pipe end.
+			/// Wait till all data is read from the output pipe end.
 			/// </summary>
 			/// <exception cref="T:System.IO.IOException">An I/O error occurs.</exception>
             /// <filterpriority>2</filterpriority>
 			public override void Flush()
 			{
+                if(this.pipe == null || this.isClosed)
+                    throw new ObjectDisposedException("Pipe.InPipeStream");
 				this.pipe.Flush(this.WriteTimeout);
 			}
 
@@ -1104,7 +1113,12 @@ namespace Renci.SshNet.Common
 			/// <filterpriority>1</filterpriority>
 			public override long Length
 			{
-				get { return this.pipe.Count; }
+				get
+                {
+                    if (this.pipe == null || this.isClosed)
+                        throw new ObjectDisposedException("Pipe.OutPipeStream");
+                    return this.pipe.Count;
+                }
 			}
 
 			/// <summary>

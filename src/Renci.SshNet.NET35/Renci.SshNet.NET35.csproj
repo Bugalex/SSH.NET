@@ -186,8 +186,8 @@
     <Compile Include="..\Renci.SshNet\Common\ObjectIdentifier.cs">
       <Link>Common\ObjectIdentifier.cs</Link>
     </Compile>
-    <Compile Include="..\Renci.SshNet\Common\PipeStream.cs">
-      <Link>Common\PipeStream.cs</Link>
+    <Compile Include="..\Renci.SshNet\Common\Pipe.cs">
+      <Link>Common\Pipe.cs</Link>
     </Compile>
     <Compile Include="..\Renci.SshNet\Common\PortForwardEventArgs.cs">
       <Link>Common\PortForwardEventArgs.cs</Link>

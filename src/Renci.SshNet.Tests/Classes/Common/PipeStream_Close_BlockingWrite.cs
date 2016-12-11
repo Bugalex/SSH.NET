@@ -7,26 +7,26 @@ namespace Renci.SshNet.Tests.Classes.Common
     [TestClass]
     public class PipeStream_Close_BlockingWrite
     {
-        private PipeStream _pipeStream;
+        private Pipe _pipeStream;
         private Exception _writeException;
         private IAsyncResult _asyncWriteResult;
 
         [TestInitialize]
         public void Init()
         {
-            _pipeStream = new PipeStream {MaxBufferLength = 3};
+            _pipeStream = new Pipe {Capacity = 3};
 
             Action writeAction = () =>
                 {
-                    _pipeStream.WriteByte(10);
-                    _pipeStream.WriteByte(13);
-                    _pipeStream.WriteByte(25);
+                    _pipeStream.InStream.WriteByte(10);
+                    _pipeStream.InStream.WriteByte(13);
+                    _pipeStream.InStream.WriteByte(25);
 
                     // attempting to write more bytes than the max. buffer length should block
                     // until bytes are read or the stream is closed
                     try
                     {
-                        _pipeStream.WriteByte(35);
+                        _pipeStream.InStream.WriteByte(35);
                     }
                     catch (Exception ex)
                     {
@@ -43,19 +43,21 @@ namespace Renci.SshNet.Tests.Classes.Common
 
         protected void Act()
         {
-            _pipeStream.Close();
+            _pipeStream.Dispose();
 
             // give async write time to complete
             _asyncWriteResult.AsyncWaitHandle.WaitOne(100);
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void BlockingWriteShouldHaveBeenInterrupted()
         {
             Assert.IsTrue(_asyncWriteResult.IsCompleted);
         }
 
         [TestMethod]
+        [TestCategory("Pipe")]
         public void WriteShouldHaveThrownObjectDisposedException()
         {
             Assert.IsNotNull(_writeException);

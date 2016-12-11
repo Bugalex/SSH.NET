@@ -15,7 +15,7 @@ namespace Renci.SshNet.Tests.Classes
         private Mock<IServiceFactory> _serviceFactoryMock;
         private Mock<ISession> _sessionMock;
         private Mock<IChannelSession> _channelSessionMock;
-        private Mock<PipeStream> _pipeStreamMock;
+        private Mock<Pipe> _pipeStreamMock;
         private ConnectionInfo _connectionInfo;
         private ScpClient _scpClient;
         private FileInfo _fileInfo;
@@ -53,14 +53,14 @@ namespace Renci.SshNet.Tests.Classes
             _serviceFactoryMock = new Mock<IServiceFactory>(MockBehavior.Strict);
             _sessionMock = new Mock<ISession>(MockBehavior.Strict);
             _channelSessionMock = new Mock<IChannelSession>(MockBehavior.Strict);
-            _pipeStreamMock = new Mock<PipeStream>(MockBehavior.Strict);
+            _pipeStreamMock = new Mock<Pipe>(MockBehavior.Strict);
 
             var sequence = new MockSequence();
             _serviceFactoryMock.InSequence(sequence)
                 .Setup(p => p.CreateSession(_connectionInfo))
                 .Returns(_sessionMock.Object);
-            _sessionMock.InSequence(sequence).Setup(p => p.Connect());
-            _serviceFactoryMock.InSequence(sequence).Setup(p => p.CreatePipeStream()).Returns(_pipeStreamMock.Object);
+            _sessionMock.InSequence(sequence).Setup(p => p.Connect(null));
+            _serviceFactoryMock.InSequence(sequence).Setup(p => p.CreatePipe(PipeFlags.NoCopy, PipeFlags.Default)).Returns(_pipeStreamMock.Object);
             _sessionMock.InSequence(sequence).Setup(p => p.CreateChannelSession()).Returns(_channelSessionMock.Object);
             _channelSessionMock.InSequence(sequence).Setup(p => p.Open());
             _channelSessionMock.InSequence(sequence)
