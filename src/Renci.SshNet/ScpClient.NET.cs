@@ -63,16 +63,19 @@ namespace Renci.SshNet
                 channel.DataReceived += (sender, e) => input.InStream.Write(e.Data, 0, e.Data.Length);
                 channel.Open();
 
-                //  Send channel command request
+                // start recursive upload
                 channel.SendExecRequest(string.Format("scp -rt \"{0}\"", path));
                 CheckReturnCode(input.OutStream);
 
+                // set last write and last access time on specified remote path
                 InternalSetTimestamp(channel, input.OutStream, directoryInfo.LastWriteTimeUtc, directoryInfo.LastAccessTimeUtc);
-                SendData(channel, string.Format("D0755 0 {0}\n", Path.GetFileName(path)));
+                SendData(channel, string.Format("D0755 0 {0}\n", "."));
                 CheckReturnCode(input.OutStream);
 
+                // recursively upload files and directories in specified remote path
                 InternalUpload(channel, input.OutStream, directoryInfo);
 
+                // terminate upload of specified remote path
                 SendData(channel, "E\n");
                 CheckReturnCode(input.OutStream);
             }
@@ -156,7 +159,7 @@ namespace Renci.SshNet
             var directories = directoryInfo.GetDirectories();
             foreach (var directory in directories)
             {
-                InternalSetTimestamp(channel, input, directoryInfo.LastWriteTimeUtc, directoryInfo.LastAccessTimeUtc);
+                InternalSetTimestamp(channel, input, directory.LastWriteTimeUtc, directory.LastAccessTimeUtc);
                 SendData(channel, string.Format("D0755 0 {0}\n", directory.Name));
                 CheckReturnCode(input);
 
