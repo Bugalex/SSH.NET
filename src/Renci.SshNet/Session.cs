@@ -1911,6 +1911,8 @@ namespace Renci.SshNet
                     {
                         _logger.LogInformation(ex, "Failure shutting down socket");
                     }
+
+                    Disconnected?.Invoke(this, EventArgs.Empty);
                 }
 
                 _logger.LogDebug("[{SessionId}] Disposing socket.", SessionIdHex);
